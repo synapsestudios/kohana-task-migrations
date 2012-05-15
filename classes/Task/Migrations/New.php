@@ -1,4 +1,4 @@
-<?php defined('SYSPATH') or die('No direct script access.');
+<?php defined('SYSPATH') OR die('No direct script access.');
 
 /**
  * The new task provides an easy way to create migration files
@@ -28,28 +28,30 @@
  *
  * @author Matt Button <matthew@sigswitch.com>
  */
-class Minion_Task_Migrations_New extends Minion_Task
+class Task_Migrations_New extends Minion_Task
 {
 	/**
 	 * A set of config options that this task accepts
 	 * @var array
 	 */
-	protected $_config = array(
-		'group',
-		'description',
-		'location'
+	protected $_options = array(
+		'location'    => APPPATH,
+		'group'       => 'default',
+		'description' => '',
 	);
+
+	protected $_errors_file = 'validation/migrations';
 
 	/**
 	 * Execute the task
 	 *
 	 * @param array Configuration
 	 */
-	public function execute(array $config)
+	protected function _execute(array $params)
 	{
 		try
 		{
-			$file = $this->generate($config);
+			$file = $this->_generate($params);
 			Minion_CLI::write('Migration generated: '.$file);
 		}
 		catch(ErrorException $e)
@@ -59,23 +61,10 @@ class Minion_Task_Migrations_New extends Minion_Task
 
 	}
 
-	public function generate($config, $up = null, $down = null)
+	protected function _generate($config, $up = NULL, $down = NULL)
 	{
-		$defaults = array(
-			'location'    => APPPATH,
-			'description' => '',
-			'group'       => NULL,
-		);
-
-		$config = array_merge($defaults, $config);
-
 		// Trim slashes in group
 		$config['group'] = trim($config['group'], '/');
-
-		if ( ! $this->_valid_group($config['group']))
-		{
-			throw new ErrorException("Please provide a valid --group\nSee help for more info");
-		}
 
 		$group = $config['group'].'/';
 		$description = $config['description'];
@@ -87,7 +76,7 @@ class Minion_Task_Migrations_New extends Minion_Task
 		$file = $this->_generate_filename($location, $group, $time, $description);
 
 
-		$data = Kohana::FILE_SECURITY.View::factory('minion/task/migrations/new/template')
+		$data = Kohana::FILE_SECURITY.PHP_EOL.View::factory('minion/task/migrations/new/template')
 			->set('class', $class)
 			->set('description', $description)
 			->set('up', $up)
@@ -117,7 +106,7 @@ class Minion_Task_Migrations_New extends Minion_Task
 
 		// If group is empty then we want to avoid double underscore in the
 		// class name
-		if ( ! empty($class))
+		if ( ! $class)
 		{
 			$class .= '_';
 		}
@@ -148,12 +137,17 @@ class Minion_Task_Migrations_New extends Minion_Task
 		return $filename.EXT;
 	}
 
-	protected function _valid_group($group)
+	public function build_validation(Validation $validation)
 	{
-		// Group cannot be empty
-		if ( ! Valid::not_empty($group))
-			return FALSE;
+		return parent::build_validation($validation)
+	 		->rule('group', 'not_empty')
+	 		->rule('description', 'not_empty')
+	 		->rule('group', 'Task_Migrations_New::valid_group');
+	}
 
+
+	public static function valid_group($group)
+	{
 		// Can only consist of alpha-numeric values, dashes, underscores, and slashes
 		if (preg_match('/[^a-zA-Z0-9\/_-]/', $group))
 			return FALSE;

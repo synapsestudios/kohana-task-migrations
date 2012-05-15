@@ -44,38 +44,41 @@
  *
  * @author Matt Button <matthew@sigswitch.com>
  */
-class Minion_Task_Migrations_Run extends Minion_Task
+class Task_Migrations_Run extends Minion_Task
 {
 	/**
 	 * A set of config options that this task accepts
 	 * @var array
 	 */
-	protected $_config = array(
-		'group',
-		'groups',
-		'up',
-		'down',
-		'to',
-		'dry-run',
-		'quiet'
+	protected $_options = array(
+		'group'   => 'default',
+		'groups'  => FALSE,
+		'up'      => FALSE,
+		'down'    => FALSE,
+		'to'      => NULL,
+		'dry-run' => FALSE,
+		'quiet'   => FALSE,
 	);
+
+	protected $_errors_file = 'validation/migrations';
 
 	/**
 	 * Migrates the database to the version specified
 	 *
 	 * @param array Configuration to use
 	 */
-	public function execute(array $config)
+	protected function _execute(array $config)
 	{
 		$k_config = Kohana::$config->load('minion/migration');
 
 		$groups  = Arr::get($config, 'group', Arr::get($config, 'groups', NULL));
-		$target  = Arr::get($config, 'to',  NULL);
+		$target = $config['to'];
 
-		$dry_run = array_key_exists('dry-run',      $config);
-		$quiet   = array_key_exists('quiet',        $config);
-		$up      = array_key_exists('up',   $config);
-		$down    = array_key_exists('down', $config);
+		// If these options are provided and empty set them to true.
+		$dry_run = ($config['dry-run'] === NULL);;
+		$quiet   = ($config['quiet'] === NULL);
+		$up      = ($config['up'] === NULL);
+		$down    = ($config['down'] === NULL);
 
 		$groups  = $this->_parse_groups($groups);
 
