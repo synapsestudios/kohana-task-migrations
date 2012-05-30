@@ -334,10 +334,10 @@ class Model_Minion_Migration extends Model
 	 * @param  bool  Whether this migration has been applied or unapplied
 	 * @return Model_Minion_Migration
 	 */
-	public function mark_migration(array $migration, $applied)
+	public function mark_migration(array $migration)
 	{
 		DB::update($this->_table)
-			->set(array('applied' => (int) $applied))
+			->set(array('applied' => 1))
 			->where('timestamp', '=', $migration['timestamp'])
 			->where('group',  '=', $migration['group'])
 			->execute($this->_db);
@@ -417,157 +417,40 @@ class Model_Minion_Migration extends Model
 
 		$query = $this->_select();
 
-		if (is_bool($target))
-		{
-			$up = $target;
-
-			// If we want to limit this migration to certain groups
-			if ( ! empty($group))
-			{
-				if (count($group) > 1)
-				{
-					$query->where('group', 'IN', $group);
-				}
-				else
-				{
-					$query->where('group', '=', $group[0]);
-				}
-			}
-		}
-		// Relative up/down target
-		elseif (in_array($target[0], array('+', '-')))
-		{
-			list($target, $up) = $this->resolve_target($group, $target);
-
-			$query->where('group', '=', $group);
-
-			if( $target !== NULL)
-			{
-				if ($up)
-				{
-					$query->where('timestamp', '<=', $target);
-				}
-				else
-				{
-					$query->where('timestamp', '>=', $target);
-				}
-			}
-
-		}
 		// Absolute timestamp
-		else
+		if (is_string($target))
 		{
 			$query->where('group', '=', $group);
 
-			$statuses = $this->fetch_current_versions('group', 'timestamp');
-			$up = (empty($statuses) OR ($statuses[$group[0]] < $target));
-
-			if ($up)
+			// Handle relative targets
+			if ($target[0] == '+')
 			{
-				$query->where('timestamp', '<=', $target);
+				$query->limit((int) substr($target, 1));
 			}
 			else
 			{
-				$query->where('timestamp', '>', $target);
+				$query->where('timestamp', '<=', $target);
 			}
 		}
 
-		// If we're migrating up
-		if ($up)
-		{
-			$query
-				->where('applied', '=', 0)
-				->order_by('timestamp', 'ASC');
-		}
-		// If we're migrating down
-		else
-		{
-			$query
-				->where('applied', '=', 1)
-				->order_by('timestamp', 'DESC');
-		}
-
-		return array($query->execute($this->_db)->as_array(), $up);
-	}
-
-	/**
-	 * Resolve a (potentially relative) target for a group to a definite timestamp
-	 *
-	 * @param string     Group name
-	 * @param string|int Target
-	 * @return array First element timestamp, second is boolean (TRUE if up, FALSE if down)
-	 */
-	public function resolve_target($group, $target)
-	{
-		if (empty($group))
-		{
-			throw new Kohana_Exception("No group specified");
-		}
-
-		if (is_array($group))
+		// If we want to limit this migration to certain groups
+		if ( ! empty($group))
 		{
 			if (count($group) > 1)
 			{
-				throw new Kohana_Exception("A target can only be expressed for a single group");
+				$query->where('group', 'IN', $group);
 			}
-
-			$group = $group[0];
-		}
-
-		if( ! in_array($target[0], array('+', '-')))
-		{
-			throw new Kohana_Exception("Invalid relative target");
-		}
-
-		$query         = $this->_select();
-		$statuses      = $this->fetch_current_versions();
-		$target        = (string) $target;
-		$group_applied = isset($statuses[$group]);
-		$timestamp     = $group_applied ? $statuses[$group]['timestamp'] : NULL;
-		$amount        = substr($target, 1);
-		$up            = $target[0] === '+';
-
-		if ($up)
-		{
-			if ($group_applied)
+			else
 			{
-				$query->where('timestamp', '>', $timestamp);
+				$query->where('group', '=', $group[0]);
 			}
 		}
-		else
-		{
-			if ( ! $group_applied)
-			{
-				throw new Kohana_Exception(
-					"Cannot migrate group :group down as none of its migrations have been applied",
-					array(':group' => $group)
-				);
-			}
 
-			$query
-				->where('applied', '=', 1)
-				->where('timestamp', '<=', $timestamp);
-		}
+		// Don't run migrations that have already been applied
+		$query
+			->where('applied', '=', 0)
+			->order_by('timestamp', 'ASC');
 
-		$query->limit($amount);
-
-		$query->where('group', '=', $group);
-
-		$query->order_by('timestamp', ($up ? 'ASC' : 'DESC'));
-
-		$results = $query->execute($this->_db);
-
-		if ($amount !== NULL AND count($results) != $amount)
-		{
-			return array(NULL, $up);
-		}
-
-		// Seek to the requested row
-		for ($i = 0; $i < $amount - 1; $i++)
-		{
-			$results->next();
-		}
-
-		return array((string) $results->get('timestamp'), $up);
+		return $query->execute($this->_db)->as_array();
 	}
 }

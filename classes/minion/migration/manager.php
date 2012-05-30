@@ -126,21 +126,12 @@ class Minion_Migration_Manager {
 	 */
 	public function run_migration($group = array(), $target = TRUE)
 	{
-		list($migrations, $is_up) = $this->_model->fetch_required_migrations($group, $target);
+		$migrations = $this->_model->fetch_required_migrations($group, $target);
 
-		$method = $is_up ? 'up' : 'down';
+		echo strip_tags(Kohana::debug($migrations));die;
 
 		foreach ($migrations as $migration)
 		{
-			if ($method == 'down' AND $migration['timestamp'] <= Kohana::$config->load('minion/migration')->lowest_migration)
-			{
-				Minion_CLI::write(
-					'You\'ve reached the lowest migration allowed by your config: '.Kohana::$config->load('minion/migration')->lowest_migration,
-					'red'
-				);
-				return;
-			}
-
 			$filename  = $this->_model->get_filename_from_migration($migration);
 
 			if ( ! ($file  = Kohana::find_file('migrations', $filename, FALSE)))
@@ -164,7 +155,7 @@ class Minion_Migration_Manager {
 
 			try
 			{
-				$instance->$method($db);
+				$instance->run($db);
 			}
 			catch(Database_Exception $e)
 			{
@@ -177,7 +168,7 @@ class Minion_Migration_Manager {
 			}
 			else
 			{
-				$this->_model->mark_migration($migration, $is_up);
+				$this->_model->mark_migration($migration);
 			}
 
 			$this->_executed_migrations[] = $migration;

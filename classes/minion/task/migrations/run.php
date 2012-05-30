@@ -7,15 +7,7 @@
  *
  * Available config options are:
  *
- * --down
- *
- *   Migrate the group(s) down
- *
- * --up
- *
- *   Migrate the group(s) up
- *
- * --to=(timestamp|+up_migrations|down_migrations)
+ * --to=(timestamp|+up_migrations)
  *
  *   Migrate to a specific timestamp, or up $up_migrations, or down $down_migrations
  *
@@ -44,55 +36,37 @@
  *
  * @author Matt Button <matthew@sigswitch.com>
  */
-class Task_Migrations_Run extends Minion_Task
+class Minion_Task_Migrations_Run extends Minion_Task
 {
 	/**
 	 * A set of config options that this task accepts
 	 * @var array
 	 */
-	protected $_options = array(
-		'group'   => 'default',
-		'groups'  => FALSE,
-		'up'      => FALSE,
-		'down'    => FALSE,
-		'to'      => NULL,
-		'dry-run' => FALSE,
-		'quiet'   => FALSE,
+	protected $_config = array(
+		'group',
+		'groups',
+		'to',
+		'dry-run',
+		'quiet',
 	);
-
-	protected $_errors_file = 'validation/migrations';
 
 	/**
 	 * Migrates the database to the version specified
 	 *
 	 * @param array Configuration to use
 	 */
-	protected function _execute(array $config)
+	public function execute(array $config)
 	{
 		$k_config = Kohana::$config->load('minion/migration');
 
 		$groups  = Arr::get($config, 'group', Arr::get($config, 'groups', NULL));
-		$target = $config['to'];
+		$target = Arr::get($config, 'to', TRUE);
 
 		// If these options are provided and empty set them to true.
-		$dry_run = ($config['dry-run'] === NULL);;
-		$quiet   = ($config['quiet'] === NULL);
-		$up      = ($config['up'] === NULL);
-		$down    = ($config['down'] === NULL);
+		$dry_run = Arr::get($config, 'dry-run');
+		$quiet   = Arr::get($config, 'quiet');
 
 		$groups  = $this->_parse_groups($groups);
-
-		if ($target === NULL)
-		{
-			if ($down)
-			{
-				$target = FALSE;
-			}
-			else
-			{
-				$target = TRUE;
-			}
-		}
 
 		$db        = Database::instance();
 		$model     = new Model_Minion_Migration($db);

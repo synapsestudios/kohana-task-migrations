@@ -28,30 +28,39 @@
  *
  * @author Matt Button <matthew@sigswitch.com>
  */
-class Task_Migrations_New extends Minion_Task
+class Minion_Task_Migrations_New extends Minion_Task
 {
 	/**
 	 * A set of config options that this task accepts
 	 * @var array
 	 */
-	protected $_options = array(
-		'location'    => APPPATH,
-		'group'       => 'default',
-		'description' => '',
+	protected $_config = array(
+		'group',
+		'description',
+		'location'
 	);
-
-	protected $_errors_file = 'validation/migrations';
 
 	/**
 	 * Execute the task
 	 *
 	 * @param array Configuration
 	 */
-	protected function _execute(array $params)
+	public function execute(array $config)
 	{
+		if (empty($config['group']) OR empty($config['description']))
+		{
+			return 'Please provide --group and --description'.PHP_EOL.
+			       'See help for more info'.PHP_EOL;
+		}
+
+		if (empty($config['location']))
+		{
+			$config['location'] = APPPATH;
+		}
+
 		try
 		{
-			$file = $this->_generate($params);
+			$file = $this->_generate($config);
 			Minion_CLI::write('Migration generated: '.$file);
 		}
 		catch(ErrorException $e)
@@ -61,7 +70,7 @@ class Task_Migrations_New extends Minion_Task
 
 	}
 
-	protected function _generate($config, $up = NULL, $down = NULL)
+	protected function _generate($config)
 	{
 		// Trim slashes in group
 		$config['group'] = trim($config['group'], '/');
@@ -79,8 +88,6 @@ class Task_Migrations_New extends Minion_Task
 		$data = Kohana::FILE_SECURITY.PHP_EOL.View::factory('minion/task/migrations/new/template')
 			->set('class', $class)
 			->set('description', $description)
-			->set('up', $up)
-			->set('down', $down)
 			->render();
 
 		if ( ! is_dir(dirname($file)))

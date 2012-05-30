@@ -49,12 +49,5 @@ abstract class Minion_Migration_Base {
 	 *
 	 * @param Database The database connection to perform actions on
 	 */
-	abstract public function up(Database $db);
-
-	/**
-	 * Runs any SQL queries necessary to bring the database schema down a version
-	 *
-	 * @param Database The database connection to perform actions on
-	 */
-	abstract public function down(Database $db);
+	abstract public function run(Database $db);
 }
