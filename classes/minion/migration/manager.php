@@ -128,8 +128,6 @@ class Minion_Migration_Manager {
 	{
 		$migrations = $this->_model->fetch_required_migrations($group, $target);
 
-		echo strip_tags(Kohana::debug($migrations));die;
-
 		foreach ($migrations as $migration)
 		{
 			$filename  = $this->_model->get_filename_from_migration($migration);
