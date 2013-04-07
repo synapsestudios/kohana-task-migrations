@@ -406,6 +406,10 @@ class Model_Minion_Migration extends Model
 		$migrations     = array();
 		$current_groups = $this->fetch_groups(TRUE);
 
+		// No migrations are required.
+		if ( ! $current_groups)
+			return array();
+
 		// Make sure the group(s) exist
 		foreach ($group as $group_name)
 		{
@@ -419,8 +423,6 @@ class Model_Minion_Migration extends Model
 
 		if (is_bool($target))
 		{
-			$up = $target;
-
 			// If we want to limit this migration to certain groups
 			if ( ! empty($group))
 			{
@@ -434,60 +436,21 @@ class Model_Minion_Migration extends Model
 				}
 			}
 		}
-		// Relative up/down target
-		elseif (in_array($target[0], array('+', '-')))
-		{
-			list($target, $up) = $this->resolve_target($group, $target);
-
-			$query->where('group', '=', $group);
-
-			if( $target !== NULL)
-			{
-				if ($up)
-				{
-					$query->where('timestamp', '<=', $target);
-				}
-				else
-				{
-					$query->where('timestamp', '>=', $target);
-				}
-			}
-
-		}
 		// Absolute timestamp
 		else
 		{
 			$query->where('group', '=', $group);
 
 			$statuses = $this->fetch_current_versions('group', 'timestamp');
-			$up = (empty($statuses) OR ($statuses[$group[0]] < $target));
 
-			if ($up)
-			{
-				$query->where('timestamp', '<=', $target);
-			}
-			else
-			{
-				$query->where('timestamp', '>', $target);
-			}
+			$query->where('timestamp', '<=', $target);
 		}
 
-		// If we're migrating up
-		if ($up)
-		{
-			$query
-				->where('applied', '=', 0)
-				->order_by('timestamp', 'ASC');
-		}
-		// If we're migrating down
-		else
-		{
-			$query
-				->where('applied', '=', 1)
-				->order_by('timestamp', 'DESC');
-		}
+		$query
+			->where('applied', '=', 0)
+			->order_by('timestamp', 'ASC');
 
-		return array($query->execute($this->_db)->as_array(), $up);
+		return $query->execute($this->_db)->as_array();
 	}
 
 	/**

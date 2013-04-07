@@ -61,7 +61,7 @@ class Task_Migrations_New extends Minion_Task
 
 	}
 
-	protected function _generate($config, $up = NULL, $down = NULL)
+	protected function _generate($config)
 	{
 		// Trim slashes in group
 		$config['group'] = trim($config['group'], '/');
@@ -79,8 +79,6 @@ class Task_Migrations_New extends Minion_Task
 		$data = Kohana::FILE_SECURITY.PHP_EOL.View::factory('minion/task/migrations/new/template')
 			->set('class', $class)
 			->set('description', $description)
-			->set('up', $up)
-			->set('down', $down)
 			->render();
 
 		if ( ! is_dir(dirname($file)))

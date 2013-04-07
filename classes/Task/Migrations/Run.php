@@ -7,17 +7,9 @@
  *
  * Available config options are:
  *
- * --down
+ * --to=(timestamp)
  *
- *   Migrate the group(s) down
- *
- * --up
- *
- *   Migrate the group(s) up
- *
- * --to=(timestamp|+up_migrations|down_migrations)
- *
- *   Migrate to a specific timestamp, or up $up_migrations, or down $down_migrations
+ *   Migrate to a specific timestamp.
  *
  *   Cannot be used with --groups, must be used with --group
  *
@@ -53,8 +45,6 @@ class Task_Migrations_Run extends Minion_Task
 	protected $_options = array(
 		'group'   => 'default',
 		'groups'  => FALSE,
-		'up'      => FALSE,
-		'down'    => FALSE,
 		'to'      => NULL,
 		'dry-run' => FALSE,
 		'quiet'   => FALSE,
@@ -77,22 +67,8 @@ class Task_Migrations_Run extends Minion_Task
 		// If these options are provided and empty set them to true.
 		$dry_run = ($config['dry-run'] === NULL);;
 		$quiet   = ($config['quiet'] === NULL);
-		$up      = ($config['up'] === NULL);
-		$down    = ($config['down'] === NULL);
 
 		$groups  = $this->_parse_groups($groups);
-
-		if ($target === NULL)
-		{
-			if ($down)
-			{
-				$target = FALSE;
-			}
-			else
-			{
-				$target = TRUE;
-			}
-		}
 
 		$db        = Database::instance();
 		$model     = new Model_Minion_Migration($db);
@@ -109,7 +85,7 @@ class Task_Migrations_Run extends Minion_Task
 		try
 		{
 			// Run migrations for specified groups & versions
-			$manager->run_migration($groups, $target);
+			$manager->run_migration($groups);
 		}
 		catch(Minion_Migration_Exception $e)
 		{

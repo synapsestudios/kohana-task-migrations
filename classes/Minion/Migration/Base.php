@@ -3,7 +3,7 @@
 /**
  * The base migration class, must be extended by all migration files
  *
- * Each migration file must implement an up() and a down() which are used to 
+ * Each migration file must implement an up() and a down() which are used to
  * apply / remove this migration from the schema respectively
  *
  * @author Matt Button <matthew@sigswitch.com>
@@ -49,12 +49,5 @@ abstract class Minion_Migration_Base {
 	 *
 	 * @param Database The database connection to perform actions on
 	 */
-	abstract public function up(Database $db);
-
-	/**
-	 * Runs any SQL queries necessary to bring the database schema down a version
-	 *
-	 * @param Database The database connection to perform actions on
-	 */
-	abstract public function down(Database $db);
+	abstract public function execute(Database $db);
 }
